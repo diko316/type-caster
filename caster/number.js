@@ -14,5 +14,12 @@ function convert(value) {
     return void(0);
 }
 
+function validate(value) {
+    return typeof value === 'number' && isFinite(value);
+}
 
-module.exports = convert;
+
+module.exports = {
+    convert: convert,
+    validate: validate
+};

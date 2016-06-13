@@ -1,7 +1,8 @@
 'use strict';
 
 var CASTER = {},
-    EXPORT = cast;
+    EXPORT = cast,
+    LIST_CACHE = null;
     
     
 function validate(name) {
@@ -28,7 +29,7 @@ function cast(name) {
     var list = CASTER;
     var caster, valid;
     
-    if (validate.apply(null, arguments)) {
+    if (list.hasOwnProperty(name)) {
         caster = list[name];
         try {
             return caster.convert.apply(
@@ -59,7 +60,7 @@ function define(name, caster) {
             else if (o.convert instanceof F) {
                 caster = o['convert'];
             }
-            if (caster instanceof Function) {
+            if (caster instanceof F) {
                 list[name] = {
                     validate: false,
                     convert: caster
@@ -67,6 +68,7 @@ function define(name, caster) {
                 if ('validate' in o && o['validate'] instanceof F) {
                     list[name].validate = o['validate'];
                 }
+                LIST_CACHE = null;
             }
         }
     }
@@ -76,6 +78,24 @@ function define(name, caster) {
 
 function has(name) {
     return EXPORT.hasOwnProperty(name);
+}
+
+function list() {
+    var casters = CASTER,
+        cache = LIST_CACHE;
+    var name, l;
+    
+    if (cache) {
+        return cache;
+    }
+    LIST_CACHE = cache = [];
+    l = 0;
+    for (name in casters) {
+        if (casters.hasownProperty(name)) {
+            cache[l++] = name;
+        }
+    }
+    return cache;
 }
 
 // define default casters

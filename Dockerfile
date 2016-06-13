@@ -1,6 +1,8 @@
 FROM diko316/alnode
 
-RUN auto-build
+COPY . $PROJECT_ROOT
+
+RUN npm install -y -dd
 
 CMD bash
 

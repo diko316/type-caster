@@ -7,4 +7,11 @@ function convert(value) {
     return void(0);
 }
 
-module.exports = convert;
+function validate(value) {
+    return Object.prototype.toString.call(value) === '[object Object]';
+}
+
+module.exports = {
+    convert: convert,
+    validate: validate
+};

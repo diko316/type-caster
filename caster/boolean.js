@@ -7,4 +7,11 @@ function convert(value) {
     return !!value;
 }
 
-module.exports = convert;
+function validate(value) {
+    return typeof value === 'boolean';
+}
+
+module.exports = {
+    convert: convert,
+    validate: validate
+};

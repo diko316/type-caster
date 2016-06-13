@@ -18,4 +18,18 @@ function convert(value) {
     return value instanceof m && value.isValid() ? value : void(0);
 }
 
-module.exports = convert;
+function validate(value) {
+    var m = MOMENT;
+    switch (Object.prototype.toString.call(value)) {
+    case '[object String]':
+        return m(value.replace(CONVERT_TO_DASH_RE, '-'), m.ISO_8601).isValid();
+    case '[object Date]':
+        return true;
+    }
+    return false;
+}
+
+module.exports = {
+    convert: convert,
+    validate: validate
+};

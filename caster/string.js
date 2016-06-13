@@ -49,5 +49,11 @@ function convert(value) {
     return void(0);    
 }
 
+function validate(value) {
+    return typeof value === 'string';
+}
 
-module.exports = convert;
+module.exports = {
+    convert: convert,
+    validate: validate
+};
