@@ -110,6 +110,7 @@ define('date', require('./caster/date.js'));
 EXPORT.define = define;
 EXPORT.has = has;
 EXPORT.validate = validate;
+EXPORT.list = list;
 
 module.exports = EXPORT;
 
