@@ -155,6 +155,8 @@ function wrapCaster(type) {
         return Caster;
     }
     
+    Type.type = type;
+    
     return Type;
 }
 
