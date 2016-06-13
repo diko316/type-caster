@@ -89,6 +89,7 @@ define('date', require('./caster/date.js'));
 // api
 EXPORT.define = define;
 EXPORT.has = has;
+EXPORT.validate = validate;
 
 module.exports = EXPORT;
 
