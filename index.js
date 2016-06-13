@@ -2,7 +2,8 @@
 
 var CASTER = {},
     EXPORT = cast,
-    LIST_CACHE = null;
+    LIST_CACHE = null,
+    AUTO_CASTER = {};
     
     
 function validate(name) {
@@ -22,6 +23,9 @@ function validate(name) {
         }
         catch (e) {}
     }
+    else {
+        throw new Error(name + ' type do not exist.');
+    }
     return false;
 }
 
@@ -37,9 +41,13 @@ function cast(name) {
                         Array.prototype.slice.call(arguments, 1)
                     );
         }
-        catch (e) {}
+        catch (e) {
+            console.log(e);
+        }
     }
-    
+    else {
+        throw new Error(name + ' type do not exist.');
+    }
     return void(0);
 }
 
@@ -77,7 +85,7 @@ function define(name, caster) {
 }
 
 function has(name) {
-    return EXPORT.hasOwnProperty(name);
+    return CASTER.hasOwnProperty(name);
 }
 
 function list() {
@@ -98,6 +106,58 @@ function list() {
     return cache;
 }
 
+function createCasters() {
+    var define = false,
+        casters = {},
+        type = null;
+    var c, l, arg, caster;
+    
+    for (c = -1, l = arguments.length; l--;) {
+        arg = arguments[++c];
+        caster = createCaster(arg);
+        if (caster) {
+            casters[arg] = caster;
+        }
+    }
+    
+    return casters;
+}
+
+function createCaster(type) {
+    var list = AUTO_CASTER;
+    if (list.hasOwnProperty(type)) {
+        return list[type];
+    }
+    return list[type] = wrapCaster(type);
+}
+
+function wrapCaster(type) {
+    function Type() {
+        var A = Array.prototype,
+            applyType = cast,
+            applyValidation = validate,
+            defaults = A.slice.call(arguments, 0);
+        
+        function Validator(data) {
+            var args = [type, data];
+            args.push.apply(args, defaults);
+            return applyValidation.apply(null, args);
+        }
+        
+        function Caster(data) {
+            var args = [type, data];
+            args.push.apply(args, defaults);
+            return applyType.apply(null, args);
+        }
+        
+        Caster.type = type;
+        Caster.validate = Validator;
+        return Caster;
+    }
+    
+    return Type;
+}
+
 // define default casters
 define('default', require('./caster/default.js'));
 define('string', require('./caster/string.js'));
@@ -111,6 +171,8 @@ EXPORT.define = define;
 EXPORT.has = has;
 EXPORT.validate = validate;
 EXPORT.list = list;
+EXPORT.types = createCasters;
+EXPORT.type = createCaster;
 
 module.exports = EXPORT;
 

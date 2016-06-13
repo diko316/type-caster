@@ -1,17 +1,28 @@
 'use strict';
 
 
-function convert(value) {
+function convert(value, cast) {
+    var l, c, item;
     switch (Object.prototype.toString.call(value))  {
     case '[object Number]':
-        if (!isFinite(value)) {
-            break;
+        if (isFinite(value)) {
+            value = [value];
         }
+        break;
     case '[object String]':
     case '[object Boolean]':
-        return [value];
+        value = [value];
+        break;
+    }
     
-    case '[object Array]':
+    if (value instanceof Array) {
+        if (this.has(cast)) {
+            value = value.slice(0);
+            for (c = -1, l = value.length; l--;) {
+                item = value[++c];
+                value[c] = this(cast, item);
+            }
+        }
         return value;
     }
 
