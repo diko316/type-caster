@@ -1,59 +1,100 @@
 'use strict';
 
-
-function fromArray(value) {
-    var c = -1,
-        l = value.length,
-        strs = [],
-        sl = 0,
-        undef = void(0);
-    var str;
-    for (; l--;) {
-        str = convert(value[++c]);
-        if (str !== undef) {
-            strs[sl++] = str;
-        }
-    }
-    return strs.join(',');
-}
-
 function convert(value) {
-    var undef = void(0);
-    var str, undef, c, l, sl, strs, me;
+    var config = this.config;
+    var str, l, strs, me, max;
     
     switch (Object.prototype.toString.call(value)) {
-    case '[object Boolean]': return value ? 'true' : 'false';
+    case '[object Boolean]':
+        value = value ? 'true' : 'false';
+        break;
     case '[object Number]':
         if (isFinite(value)) {
-            return value.toString(10);
+            value = value.toString(10);
         }
         break;
     case '[object Array]':
-        me = convert;
-        if (!me.converting) {
-            me.converting = true;
-            strs = [];
-            sl = 0;
-            for (c = -1, l = value.length; l--;) {
-                str = convert(value[++c]);
-                if (str !== undef) {
-                    strs[sl++] = str;
+        strs = value.slice(0);
+        for (l = strs.length; l--;) {
+            str = strs[l];
+            switch (typeof str) {
+            case 'boolean':
+                strs[l] = str ? 'true' : 'false';
+                break;
+            case 'number':
+                if (isFinite(str)) {
+                    strs[l] = str.toString(10);
                 }
+                else {
+                    strs.splice(l, 1);
+                }
+            case 'string':
+                strs[l] = str;
+                break;
+            default:
+                strs.splice(l, 1);
             }
-            delete me.converting;
-            return strs.join(',');
         }
-        
-    case '[object String]': return value;
+        value = strs.join(',');
     }
+    
+    if (typeof value === 'string') {
+        l = value.length;
+        max = config.max;
+        
+        if (max && l > max) {
+            return value.substring(0, max);
+        }
+        return value;
+    
+    }
+    
     return void(0);    
 }
 
-function validate(value) {
-    return typeof value === 'string';
+function validate(state, value) {
+    var config = this.config,
+        error = state.error;
+    var min, max, len;
+    
+    if (typeof value === 'string') {
+        len = value.length;
+        min = config.min;
+        max = config.max;
+        
+        if (min && len < min) {
+            error.min = 'requires at least ' + min + ' characters';
+            return;
+        }
+        else if (max && len > max) {
+            error.max = 'must not exceed ' + max + ' characters';
+            return;
+        }
+        state.error = false;
+    }
+}
+
+function min(value) {
+    if (typeof value === 'number' && isFinite(value)) {
+        return Math.max(value, 0);
+    }
+    return this.config.min;
+}
+
+function max(value) {
+    if (typeof value === 'number' && isFinite(value)) {
+        return Math.max(value, 0);
+    }
+    return this.config.max;
 }
 
 module.exports = {
-    convert: convert,
-    validate: validate
+    '@config': {
+        min: 0,
+        max: 0
+    },
+    'cast': convert,
+    validate: validate,
+    min: min,
+    max: max
 };

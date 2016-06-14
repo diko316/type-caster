@@ -14,12 +14,45 @@ function convert(value) {
     return void(0);
 }
 
-function validate(value) {
-    return typeof value === 'number' && isFinite(value);
+function validate(state, value) {
+    var config = this.config,
+        error = state.error;
+    var min, max;
+    
+    if (typeof value === 'number' && isFinite(value)) {
+        min = config.min;
+        max = config.max;
+        if (min !== false && value < min) {
+            error.min = 'must be at least ' + min.toString(10);
+            return;
+        }
+        else if (max !== false && value > max) {
+            error.max = 'must not exceed ' + min.toString(10);
+            return;
+        }
+        state.error = false;
+    }
 }
 
+function min(value) {
+    if (typeof value === 'number' && isFinite(value)) {
+        return value;
+    }
+    return false;
+}
+
+function max(value) {
+    if (typeof value === 'number' && isFinite(value)) {
+        return value;
+    }
+    return false;
+}
 
 module.exports = {
-    convert: convert,
+    '@config': {
+        min: false,
+        max: false
+    },
+    'cast': convert,
     validate: validate
 };
