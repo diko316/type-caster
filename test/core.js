@@ -9,7 +9,7 @@ var type = require('../index.js'),
                         id: 'number',
                         name: type('string')
                     }).
-                    requires('name');
+                    strict();
 
 console.log('is caster ', type.is(arrayOfString));
 
@@ -26,7 +26,6 @@ type.define('buang', recordType);
 
 console.log(
     type('buang').
-        requires('shit').
         schema({
             shit: 'string'
         }).
