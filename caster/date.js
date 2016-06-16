@@ -5,6 +5,7 @@ var MOMENT = require('moment'),
     
 
 function convert(value) {
+    /*jshint validthis:true */
     var config = this.config;
     var min, max;
     value = toMoment(value);
@@ -26,6 +27,7 @@ function convert(value) {
 }
 
 function validate(state, value) {
+    /*jshint validthis:true */
     var config = this.config,
         error = state.error,
         format = 'llll';
@@ -53,6 +55,7 @@ function min(value) {
     if (value && value.isValid()) {
         return value;
     }
+    /*jshint validthis:true */
     return this.config.min;
 }
 
@@ -61,6 +64,7 @@ function max(value) {
     if (value && value.isValid()) {
         return value;
     }
+    /*jshint validthis:true */
     return this.config.min;
 }
 

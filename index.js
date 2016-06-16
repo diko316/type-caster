@@ -2,9 +2,7 @@
 
 var CASTER = {},
     EXPORT = instantiate,
-    LIST_CACHE = null,
-    AUTO_CASTER = {};
-    
+    LIST_CACHE = null;   
 
 
 function define(name, caster) {
@@ -12,7 +10,7 @@ function define(name, caster) {
         F = Function,
         toString = Object.prototype.toString,
         manager = EXPORT;
-    var o, key, value, properties, validator, names, nl, configure;
+    var o, key, value, properties, validator, names, nl, configure, clone;
     
     if (name && typeof name === 'string') {
         
@@ -25,10 +23,11 @@ function define(name, caster) {
         o = null;
         switch (toString.call(caster)) {
         case '[object Function]':
-            caster['cast'] = caster;
+            caster.cast = caster;
+        /* falls through */
         case '[object Object]':
             o = caster;
-            caster = validator = configure = null;
+            caster = validator = configure = clone = null;
             names = [];
             nl = 0;
             properties = {};
@@ -51,6 +50,11 @@ function define(name, caster) {
                             configure = value;
                         }
                         break;
+                    case '@clone':
+                        if (value instanceof F) {
+                            clone = value;
+                        }
+                        break;
                     default:
                         if (value instanceof F) {
                             names[nl++] = key;
@@ -66,6 +70,7 @@ function define(name, caster) {
                                 configure,
                                 caster,
                                 validator,
+                                clone,
                                 names,
                                 properties);
                 LIST_CACHE = null;
@@ -77,24 +82,24 @@ function define(name, caster) {
 }
 
 function defineFrom(name, caster) {
-    var e = empty;
-    var Proto, config, key, value, old;
+    var E = empty;
+    var Proto, config, key, old;
     function Type() {
         var me = this,
-            e = empty;
+            E = empty;
         if (me instanceof Type) {
             caster.constructor.apply(this, arguments);
         }
         else {
-            e.prototype = Type.prototype;
-            me = new e();
+            E.prototype = Type.prototype;
+            me = new E();
             Type.apply(me, arguments);
         }
         return me;
     }
     
-    e.prototype = caster;
-    Type.prototype = Proto = new e();
+    E.prototype = caster;
+    Type.prototype = Proto = new E();
     Proto.constructor = Type;
     // renew config
     old = caster.config;
@@ -103,6 +108,9 @@ function defineFrom(name, caster) {
         if (old.hasOwnProperty(key)) {
             config[key] = old[key];
         }
+    }
+    if (caster.$clone) {
+        caster.$clone(Proto);
     }
     LIST_CACHE = null;
     CASTER[name] = Type;
@@ -148,31 +156,32 @@ function list() {
 
 
 function createTypeCaster(castName, defaults,
-                          cast, validate, names, configurators) {
-    var e = empty,
+                          cast, validate, clone, names, configurators) {
+    var E = empty,
         hasOwn = Object.prototype.hasOwnProperty;
-    var name, value, c, l, configurator, properties, config;
+    var name, c, l, properties, config;
     
     function Type() {
         var me = this,
-            e = empty,
+            E = empty,
             Class = Type;
         if (me instanceof Class) {
             me.$basedOn.apply(me, arguments);
         }
         else {
-            e.prototype = Type.prototype;
-            me = new e();
+            E.prototype = Type.prototype;
+            me = new E();
             Class.apply(me, arguments);
         }
         return me;
     }
     
-    e.prototype = BaseType.prototype;
-    properties = new e();
+    E.prototype = BaseType.prototype;
+    properties = new E();
     properties.constructor = Type;
     properties.$basedOn = BaseType;
     properties.$name = castName;
+    properties.$clone = clone;
     Type.prototype = properties;
     
     // create wrapped fns
@@ -244,7 +253,7 @@ function wrapConfigurator(name, Configurator) {
         }
         this.config[name] = value;
         return this;
-    }
+    };
 }
 
 function defaultValidator(state) {
@@ -274,7 +283,7 @@ BaseType.prototype = {
         defaultValue: void(0)
     },
     constructor: BaseType,
-    defaultValue: wrapConfigurator('defaultValue', function () {
+    defaultValue: wrapConfigurator('defaultValue', function (value) {
                     return arguments.length ?
                             value : this.config.defaultValue;
                 })

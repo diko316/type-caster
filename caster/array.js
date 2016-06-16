@@ -1,21 +1,27 @@
 'use strict';
 
 function convert(value) {
-    var types = this.config.itemTypes,
+    /*jshint validthis:true */
+    var me = this,
+        types = me.config.itemTypes,
         isCopy = false;
-    var l, c, item, tl, tc, ttl, type, typed, caster;
+    var l, c, item, tl, tc, ttl, type;
     
     switch (Object.prototype.toString.call(value))  {
     case '[object String]':
         value = Array.prototype.slice.call(value, 0);
         isCopy = true;
-        
+    /* falls through */
     case '[object Array]':
         tl = types && types.length;
         l = value.length;
         if (tl && l) {
             if (!isCopy) {
                 value = value.slice(0);
+            }
+            // finalize types
+            if (me.$$newItemTypes) {
+                resolveTypes(me);
             }
             next: for (c = -1, l = value.length; l--;) {
                 item = value[++c];
@@ -29,7 +35,7 @@ function convert(value) {
                 value[c] = void(0);
             }
         }
-        if (!this.validate(value).error) {
+        if (!me.validate(value).error) {
             return value;
         }
     }
@@ -37,7 +43,9 @@ function convert(value) {
 }
 
 function validate(state, value) {
-    var config = this.config,
+    /*jshint validthis:true */
+    var me = this,
+        config = me.config,
         error = state.error,
         blame = state.blame;
     var min, max, len, types, type, tl, total, l, item,
@@ -62,6 +70,10 @@ function validate(state, value) {
         l = value.length;
         total = types && types.length;
         if (total && l) {
+            // finalize types
+            if (me.$$newItemTypes) {
+                resolveTypes(me);
+            }
             typeErrors = [];
             bl = 0;
             next: for (; l--;) {
@@ -88,7 +100,9 @@ function validate(state, value) {
 }
 
 function itemTypes(types) {
-    var caster = this.$type;
+    /*jshint validthis:true */
+    var me = this,
+        caster = me.$type;
     var l, type, casters;
     
     if (typeof types === 'string' || caster.is(types)) {
@@ -99,23 +113,23 @@ function itemTypes(types) {
         casters = [];
         for (l = types.length; l--;) {
             type = types[l];
-            if (caster.has(type)) {
-                type = caster(type);
-            }
-            else if (!caster.is(type)) {
-                throw new Error('itemTypes must be a valid type or type name');
+            if (!type ||
+                (typeof type !== 'string' && !caster.is(type))) {
+                throw new Error('item in itemTypes is invalid');
             }
             casters[l] = type;
         }
+        me.$$newItemTypes = true;
         return casters;
     }
-    return this.config.itemTypes;
+    return me.config.itemTypes;
 }
 
 function min(value) {
     if (typeof value === 'number' && isFinite(value)) {
         return Math.max(0, value);
     }
+    /*jshint validthis:true */
     return this.config.min;
 }
 
@@ -123,15 +137,47 @@ function max(value) {
     if (typeof value === 'number' && isFinite(value)) {
         return Math.max(0, value);
     }
+    /*jshint validthis:true */
     return this.config.max;
 }
 
+function clone(target) {
+    /*jshint validthis:true */
+    var itemTypes = this.config.itemTypes;
+    if (itemTypes) {
+        target.itemTypes(itemTypes);
+    }
+}
+
+function resolveTypes(typeInstance) {
+    var caster = typeInstance.$type,
+        types = typeInstance.config.itemTypes;
+        
+    var type, c, l;
+
+    for (c = -1, l = types.length; l--;) {
+        type = types[++c];
+        if (typeof type === 'string') {
+            if (!caster.has(type)) {
+                throw new Error(type + ' in itemTypes do not exist');
+            }
+            types[c] = caster(type);
+        }
+    }
+    delete typeInstance.$$newItemTypes;
+    
+    return true;
+}
+
+
+
 module.exports = {
     '@config': {
-        itemTypes: [],
+        itemTypes: false,
         min: 0,
         max: 0
     },
+    '@clone': clone,
     'cast': convert,
     validate: validate,
     itemTypes: itemTypes,

@@ -2,8 +2,10 @@
 
 
 function convert(value) {
-    var O = Object.prototype,
-        config = this.config;
+    /*jshint validthis:true */
+    var me = this,
+        O = Object.prototype,
+        config = me.config;
     var created, schema, requires, types, names, name,
         c, l, item, hasOwn, allowExcess;
     
@@ -15,9 +17,14 @@ function convert(value) {
         requires = config.requires || {};
         
         if (schema) {
+            // finalize types
+            if (me.$$newItemTypes) {
+                resolveTypes(me);
+            }
             types = schema.types;
             names = schema.names;
             allowExcess = schema.allowExcess;
+            
         }
         else {
             types = {};
@@ -64,11 +71,13 @@ function convert(value) {
 }
 
 function validate(state, value) {
-    var config = this.config,
+    /*jshint validthis:true */
+    var me = this,
+        config = me.config,
         error = state.error,
         blame = state.blame,
         O = Object.prototype;
-    var schema, types, names, name, requires, l, hasOwn, item, bl,
+    var schema, types, names, name, requires, l, hasOwn, bl,
         itemError, typeErrors;
     
     if (O.toString.call(value) === '[object Object]') {
@@ -77,6 +86,10 @@ function validate(state, value) {
         
         // validate schema
         if (schema) {
+            // finalize types
+            if (me.$$newItemTypes) {
+                resolveTypes(me);
+            }
             types = schema.types;
             names = schema.names;
             hasOwn = O.hasOwnProperty;
@@ -123,16 +136,17 @@ function validate(state, value) {
 }
 
 function schema(manifest, allowExcess) {
-    var O = Object.prototype,
+    /*jshint validthis:true */
+    var me = this,
+        O = Object.prototype,
         hasOwn = O.hasOwnProperty,
-        caster = this.$type,
-        old = this.config.schema;
+        caster = me.$type,
+        old = me.config.schema;
     
-    var names, nl, list, name, type, item, types;
+    var names, nl, list, name, type, types;
     
     if (O.toString.call(manifest) === '[object Object]') {
         list = {};
-        names = [];
        
         if (old) {
             types = old.types;
@@ -141,12 +155,18 @@ function schema(manifest, allowExcess) {
                     list[name] = types[name];
                 }
             }
-            names.push.apply(names, old.names);
+            
+            names = old.names.slice(0);
+            nl = names.length;
             
             // allow excess?
             if (arguments.length === 1 || typeof allowExcess === 'undefined') {
                 allowExcess = old.allowExcess;
             }
+        }
+        else {
+            names = [];
+            nl = 0;
         }
         
         nl = names.length;
@@ -154,20 +174,19 @@ function schema(manifest, allowExcess) {
         for (name in manifest) {
             if (hasOwn.call(manifest, name)) {
                 type = manifest[name];
-                if (caster.has(type)) {
-                    type = caster(type);
+                if (!type ||
+                    (typeof type !== 'string' && !caster.is(type))) {
+                    throw new Error(name + ' schema type is invalid');
                 }
-                else if (!caster.is(type)) {
-                    throw new Error(
-                                'schema type must be a valid type or type name'
-                            );
-                }
+
                 if (!hasOwn.call(list, name)) {
                     names[nl++] = name;
                 }
                 list[name] = type;
             }
-        } 
+        }
+        
+        me.$$newItemTypes = true;
         
         return {
             allowExcess: allowExcess === true,
@@ -180,6 +199,7 @@ function schema(manifest, allowExcess) {
 }
 
 function requires(args) {
+    /*jshint validthis:true */
     var current = this.config.requires;
     var name, c, l;
     
@@ -202,12 +222,52 @@ function requires(args) {
     return current;
 }
 
+function resolveTypes(typeInstance) {
+    /*jshint validthis:true */
+    var caster = typeInstance.$type,
+        schema = typeInstance.config.schema,
+        names = schema.names,
+        types = schema.types;
+        
+    var name, type, c, l;
+
+    for (c = -1, l = names.length; l--;) {
+        name = names[++c];
+        type = types[name];
+        if (typeof type === 'string') {
+            if (!caster.has(type)) {
+                throw new Error(type + ' type in [' +
+                                name + '] schema do not exist');
+            }
+            types[name] = caster(type);
+        }
+    }
+    delete typeInstance.$$newItemTypes;
+}
+
+function clone(target) {
+    /*jshint validthis:true */
+    var config = this.config;
+    var item;
+    
+    // recreate schema
+    item = config.schema;
+    if (item) {
+        target.schema(item.types, item.allowExcess);
+    }
+    // recreate requires
+    item = config.requires;
+    if (item) {
+        target.requires(item);
+    }
+}
 
 module.exports = {
     '@config': {
         schema: false,
         requires: false
     },
+    '@clone': clone,
     'cast': convert,
     validate: validate,
     schema: schema,

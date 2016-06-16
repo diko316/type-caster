@@ -43,11 +43,11 @@ console.log(
         })
 );
 
-console.log(
-    recordType.
-        cast({
-            id: 1,
-            name: 'diko',
-            shit: 'ka'
-        })
-);
+//console.log(
+//    recordType.
+//        cast({
+//            id: 1,
+//            name: 'diko',
+//            shit: 'ka'
+//        })
+//);
