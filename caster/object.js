@@ -65,10 +65,11 @@ function convert(value) {
         
         validation = this.validate(created);
         if (!validation.error) {
-            console.log('!invalid data: ', validation);
-            console.log(created);
             return created;
         }
+        
+        console.log('!invalid data: ', validation);
+        console.log(created);
         
     }
     return void(0);
