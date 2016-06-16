@@ -58,6 +58,9 @@ function convert(value) {
                 if (!hasOwn.call(created, name) &&
                     hasOwn.call(requires, name)) {
                     created[name] = types[name].cast();
+                    console.log('*** Casted data from ' + name);
+                    console.log(created[name]);
+                    console.log('*****');
                 }
             }
         }
