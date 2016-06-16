@@ -46,9 +46,6 @@ function convert(value) {
                     continue;
                 }
                 created[name] = item;
-                console.log('*** Casted data from ' + name);
-                console.log(created[name]);
-                console.log('*****');
             }
         }
         
@@ -66,14 +63,9 @@ function convert(value) {
             }
         }
         
-        
-        validation = this.validate(created);
-        if (!validation.error) {
+        if (!this.validate(created).error) {
             return created;
         }
-        
-        console.log('!invalid data: ', validation);
-        console.log(created);
         
     }
     return void(0);

@@ -10,9 +10,6 @@ var type = require('./index.js'),
                         name: type('string')
                     }).
                     requires('name');
-    
-//console.log(caster("string", "buang"));
-//console.log(caster.validate("array", "string"));
 
 console.log('is caster ', type.is(arrayOfString));
 

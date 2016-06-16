@@ -130,7 +130,6 @@ function instantiate(name) {
     if (list.hasOwnProperty(name)) {
         return new (list[name])();
     }
-    console.log(name + ' not found!');
     return void(0);
 }
 

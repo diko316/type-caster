@@ -1,6 +1,6 @@
 {
   "name": "type-caster",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "description": "Data type juggler",
   "main": "index.js",
   "scripts": {
