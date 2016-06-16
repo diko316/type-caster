@@ -82,29 +82,33 @@ function define(name, caster) {
 }
 
 function defineFrom(name, caster) {
-    var E = empty;
+    var E = empty,
+        BaseType = caster.constructor;
     var Proto, config, key, old;
     function Type() {
         var me = this,
-            E = empty;
-        if (me instanceof Type) {
-            caster.constructor.apply(this, arguments);
+            E = empty,
+            Class = Type;
+        if (me instanceof Class) {
+            BaseType.apply(this, arguments);
         }
         else {
             E.prototype = Type.prototype;
             me = new E();
-            Type.apply(me, arguments);
+            Class.apply(me, arguments);
         }
         return me;
     }
     
     E.prototype = caster;
     Type.prototype = Proto = new E();
+    
     Proto.constructor = Type;
+    Proto.$name = name;
+    
     // renew config
     old = caster.config;
-    Proto.$name = name;
-    Proto.$basedOn = caster.constructor;
+    
     Proto.config = config = {};
     for (key in old) {
         if (old.hasOwnProperty(key)) {
@@ -169,7 +173,7 @@ function createTypeCaster(castName, defaults,
             E = empty,
             Class = Type;
         if (me instanceof Class) {
-            me.$basedOn.apply(me, arguments);
+            BaseType.apply(me, arguments);
         }
         else {
             E.prototype = Type.prototype;
@@ -182,7 +186,6 @@ function createTypeCaster(castName, defaults,
     E.prototype = BaseType.prototype;
     properties = new E();
     properties.constructor = Type;
-    properties.$basedOn = BaseType;
     properties.$name = castName;
     properties.$clone = clone;
     Type.prototype = properties;
