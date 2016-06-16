@@ -5,70 +5,63 @@ function convert(value) {
     /*jshint validthis:true */
     var me = this,
         O = Object.prototype,
-        config = me.config;
-    var created, schema, requires, types, names, name,
-        c, l, item, hasOwn, allowExcess, validation;
+        config = me.config,
+        undef = void(0);
+    var created, types, names, name,
+        c, l, item, itemType, hasOwn;
     
     if (O.toString.call(value) === '[object Object]') {
         
+        // finalize types
+        if (me.$$newItemTypes) {
+            resolveTypes(me);
+        }
+        
         hasOwn = O.hasOwnProperty;
         created = {};
-        schema = config.schema;
-        requires = config.requires || {};
+        names = config.$schemaNames;
+        types = config.schema;
         
-        if (schema) {
-            // finalize types
-            if (me.$$newItemTypes) {
-                resolveTypes(me);
-            }
-            types = schema.types;
-            names = schema.names;
-            allowExcess = schema.allowExcess;
+        // apply schema properties
+        for (c = -1, l = names.length; l--;) {
+            name = names[++c];
+            itemType = types[name];
             
-        }
-        else {
-            types = {};
-            allowExcess = true;
-            names = false;
-        }
-        
-        
-        
-        // apply to created
-        for (name in value) {
+            // cast value according to type
             if (hasOwn.call(value, name)) {
-                item = value[name];
-                // cast
-                if (hasOwn.call(types, name)) {
-                    item = types[name].cast(item);
-                }
-                else if (!allowExcess) {
-                    continue;
-                }
-                created[name] = item;
-            }
-        }
-        
-        // apply from schema
-        if (names) {
-            for (c = -1, l = names.length; l--;) {
-                name = names[++c];
+                item = itemType.cast(value[name]);
                 
-                // force apply, only defaults can create values
-                if (!hasOwn.call(created, name) &&
-                    hasOwn.call(requires, name)) {
-                    created[name] = types[name].cast();
-                    
+            }
+            // auto-fill value
+            else if (itemType.config.required) {
+                item = itemType.cast();
+                
+                // fail if default value is not valid
+                if (itemType.validate(item).error) {
+                    return undef;
+                }
+                
+            }
+            // leave out
+            else {
+                continue;
+            }
+            created[name] = item;
+        }
+        
+        // apply extra properties only if not strict
+        if (!config.strict) {
+            for (name in value) {
+                if (hasOwn.call(value, name) && !hasOwn.call(types, name)) {
+                    created[name] = value[name];
                 }
             }
         }
         
-        if (!this.validate(created).error) {
-            return created;
-        }
+        return created;
         
     }
-    return void(0);
+    return undef;
 }
 
 function validate(state, value) {
@@ -78,65 +71,62 @@ function validate(state, value) {
         error = state.error,
         blame = state.blame,
         O = Object.prototype;
-    var schema, types, names, name, requires, l, hasOwn, bl,
-        itemError, typeErrors;
+    var types, names, name, l, hasOwn, bl,
+        itemError, typeErrors, itemType;
     
     if (O.toString.call(value) === '[object Object]') {
-        schema = config.schema;
-        requires = config.requires || {};
+        // finalize types
+        if (me.$$newItemTypes) {
+            resolveTypes(me);
+        }
         
-        // validate schema
-        if (schema) {
-            // finalize types
-            if (me.$$newItemTypes) {
-                resolveTypes(me);
-            }
-            types = schema.types;
-            names = schema.names;
-            hasOwn = O.hasOwnProperty;
-            bl = 0;
-            typeErrors = {};
+        names = config.$schemaNames;
+        hasOwn = O.hasOwnProperty;
+        types = config.schema;
+        bl = 0;
+        typeErrors = {};
+        
+        // validate type
+        for (l = names.length; l--;) {
+            name = names[l];
+            itemType = types[name];
             
-            // validate type
-            for (l = names.length; l--;) {
-                name = names[l];
-                
-                if (!hasOwn.call(value, name)) {
-                    if (hasOwn.call(requires, name)) {
-                        typeErrors[name] = 'does not have [' + name + ']';
-                        blame[bl++] = name;
-                    }
-                    continue;
+            // check if required
+            if (!hasOwn.call(value, name)) {
+                if (itemType.config.required) {
+                    typeErrors[name] = '[' + name + '] is required';
+                    blame[bl++] = name;
                 }
-                itemError = types[name].validate(value[name]).error;
-                if (itemError) {
-                    typeErrors[name] = '[' + name + '] ' + itemError.validate;
+                continue;
+            }
+            // type validate
+            itemError = itemType.validate(value[name]).error;
+            if (itemError) {
+                typeErrors[name] = '[' + name + '] ' + itemError.validate;
+                blame[bl++] = name;
+            }
+        }
+        
+        // validate excess
+        if (config.strict) {
+            for (name in value) {
+                if (hasOwn.call(value, name) && !hasOwn.call(types, name)) {
+                    typeErrors[name] = 'must not contain [' + name + ']';
                     blame[bl++] = name;
                 }
             }
-            
-            // validate excess
-            if (schema.allowExcess) {
-                for (name in value) {
-                    if (hasOwn.call(value, name) && !hasOwn.call(types, name)) {
-                        typeErrors[name] = 'must not contain [' + name + ']';
-                        blame[bl++] = name;
-                    }
-                }
-            }
-            
-            if (bl) {
-                error.schema = typeErrors;
-                return;
-            }
-
+        }
+        
+        if (bl) {
+            error.schema = typeErrors;
+            return;
         }
 
         state.error = false;
     }
 }
 
-function schema(manifest, allowExcess) {
+function schema(manifest) {
     /*jshint validthis:true */
     var me = this,
         O = Object.prototype,
@@ -159,11 +149,6 @@ function schema(manifest, allowExcess) {
             
             names = old.names.slice(0);
             nl = names.length;
-            
-            // allow excess?
-            if (arguments.length === 1 || typeof allowExcess === 'undefined') {
-                allowExcess = old.allowExcess;
-            }
         }
         else {
             names = [];
@@ -188,47 +173,23 @@ function schema(manifest, allowExcess) {
         }
         
         me.$$newItemTypes = true;
-        
-        return {
-            allowExcess: allowExcess === true,
-            names: names,
-            types: list
-        };
+        me.config.$schemaNames = names;
+        return list;
     }
     
     return old;
 }
 
-function requires(args) {
-    /*jshint validthis:true */
-    var current = this.config.requires;
-    var name, c, l;
-    
-    if (args && typeof args === 'string') {
-        args = [args];
-    }
-    
-    if (args instanceof Array) {
-        if (!current) {
-            current = {};
-        }
-        for (c = -1, l = args.length; l--;) {
-            name = args[++c];
-            if (!name || typeof name !== 'string') {
-                throw new Error('required attribute name is not valid');
-            }
-            current[name] = true;
-        }
-    }
-    return current;
+function strict(value) {
+    return !arguments.length || value !== false;
 }
 
 function resolveTypes(typeInstance) {
     /*jshint validthis:true */
     var caster = typeInstance.$type,
-        schema = typeInstance.config.schema,
-        names = schema.names,
-        types = schema.types;
+        config = typeInstance.config,
+        types = config.schema,
+        names = config.$schemaNames;
         
     var name, type, c, l;
 
@@ -246,31 +207,44 @@ function resolveTypes(typeInstance) {
     delete typeInstance.$$newItemTypes;
 }
 
-function clone(target) {
+function clone(target, superClone) {
     /*jshint validthis:true */
-    var config = this.config;
-    var item;
+    var config = this.config,
+        targetConfig = target.config;
+    var targetItem, item, name, hasOwn;
+    
+    superClone();
+    
+    hasOwn = Object.prototype.hasOwnProperty;
+    
+    // set strict
+    targetConfig.strict = config.strict;
     
     // recreate schema
     item = config.schema;
-    if (item) {
-        target.schema(item.types, item.allowExcess);
+    targetItem = targetConfig.schema = {};
+    for (name in item) {
+        if (hasOwn.call(item, name)) {
+            targetItem[name] = item[name];
+        }
     }
-    // recreate requires
-    item = config.requires;
+    targetConfig.$schemaNames = config.$schemaNames.slice(0);
+    item = config.$$newItemTypes;
     if (item) {
-        target.requires(item);
+        targetConfig.$$newItemTypes = item;
     }
+
 }
 
 module.exports = {
     '@config': {
-        schema: false,
-        requires: false
+        strict: false,
+        $schemaNames: [],
+        schema: false
     },
     '@clone': clone,
     'cast': convert,
     validate: validate,
     schema: schema,
-    requires: requires
+    strict: strict
 };

@@ -141,12 +141,17 @@ function max(value) {
     return this.config.max;
 }
 
-function clone(target) {
+function clone(target, superClone) {
     /*jshint validthis:true */
-    var itemTypes = this.config.itemTypes;
-    if (itemTypes) {
-        target.itemTypes(itemTypes);
-    }
+    var config = this.config,
+        targetConfig = target.config;
+    
+    superClone();
+    
+    targetConfig.itemTypes = config.itemTypes.slice(0);
+    targetConfig.min = config.min;
+    targetConfig.max = config.max;
+
 }
 
 function resolveTypes(typeInstance) {

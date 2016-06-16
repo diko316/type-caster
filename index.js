@@ -86,18 +86,7 @@ function defineFrom(name, caster) {
         BaseType = caster.constructor;
     var Proto, config, key, old;
     function Type() {
-        var me = this,
-            E = empty,
-            Class = Type;
-        if (me instanceof Class) {
-            BaseType.apply(this, arguments);
-        }
-        else {
-            E.prototype = Type.prototype;
-            me = new E();
-            Class.apply(me, arguments);
-        }
-        return me;
+        BaseType.apply(this, arguments);
     }
     
     E.prototype = caster;
@@ -116,9 +105,8 @@ function defineFrom(name, caster) {
         }
     }
     
-    if (caster.$clone) {
-        caster.$clone(Proto);
-    }
+    caster.$clone(Proto);
+    
     LIST_CACHE = null;
     CASTER[name] = Type;
     
@@ -168,25 +156,25 @@ function createTypeCaster(castName, defaults,
     var name, c, l, properties, config;
     
     function Type() {
-        var me = this,
-            E = empty,
-            Class = Type;
-        if (me instanceof Class) {
-            BaseType.apply(me, arguments);
-        }
-        else {
-            E.prototype = Type.prototype;
-            me = new E();
-            Class.apply(me, arguments);
-        }
-        return me;
+        /*jshint validthis:true */
+        BaseType.apply(this, arguments);
     }
     
     E.prototype = BaseType.prototype;
     properties = new E();
     properties.constructor = Type;
     properties.$name = castName;
-    properties.$clone = clone;
+    
+    if (clone) {
+        properties.$clone = function (target) {
+            var me = this;
+            clone.call(me,
+                        target,
+                        function () {
+                            BaseType.prototype.$clone.call(me, target);
+                        });
+        };
+    }
     Type.prototype = properties;
     
     // create wrapped fns
@@ -284,15 +272,40 @@ function BaseType() {
 }
 
 BaseType.prototype = {
+    
     $type: EXPORT,
+    
     config: {
-        defaultValue: void(0)
+        defaultValue: void(0),
+        required: false
+        //optional: true
     },
+    
     constructor: BaseType,
+    
     defaultValue: wrapConfigurator('defaultValue', function (value) {
                     return arguments.length ?
                             value : this.config.defaultValue;
-                })
+                }),
+    
+    required: wrapConfigurator('required', function (value) {
+                    return !arguments.length || value !== false;
+                }),
+    
+    //optional: wrapConfigurator('optional', function (value) {
+    //                return !arguments.length || value !== false;
+    //            }),
+    
+    $clone: function(target) {
+        var config = this.config,
+            targetConfig = target.config;
+            
+        targetConfig.defaultValue = config.defaultValue;
+        targetConfig.required = config.required;
+        //targetConfig.optional = config.optional;
+        
+    }
+    
 };
 
 // api

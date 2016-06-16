@@ -93,11 +93,23 @@ function max(value) {
     return this.config.max;
 }
 
+function clone(target, superClone) {
+    /*jshint validthis:true */
+    var config = this.config,
+        targetConfig = target.config;
+    
+    superClone();
+    
+    targetConfig.min = config.min;
+    targetConfig.max = config.max;
+}
+
 module.exports = {
     '@config': {
         min: 0,
         max: 0
     },
+    '@clone': clone,
     'cast': convert,
     validate: validate,
     min: min,
