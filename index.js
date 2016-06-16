@@ -279,6 +279,7 @@ function BaseType() {
             newConfig[name] = config[name];
         }
     }
+    this.config = newConfig;
 
 }
 
