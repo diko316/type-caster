@@ -63,6 +63,8 @@ function convert(value) {
         }
         
         if (!this.validate(created).error) {
+            console.log('!invalid data: ');
+            console.log(created);
             return created;
         }
         
