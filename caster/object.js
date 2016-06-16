@@ -7,7 +7,7 @@ function convert(value) {
         O = Object.prototype,
         config = me.config;
     var created, schema, requires, types, names, name,
-        c, l, item, hasOwn, allowExcess;
+        c, l, item, hasOwn, allowExcess, validation;
     
     if (O.toString.call(value) === '[object Object]') {
         
@@ -62,8 +62,10 @@ function convert(value) {
             }
         }
         
-        if (!this.validate(created).error) {
-            console.log('!invalid data: ');
+        
+        validation = this.validate(created);
+        if (!validation.error) {
+            console.log('!invalid data: ', validation);
             console.log(created);
             return created;
         }
