@@ -103,12 +103,15 @@ function defineFrom(name, caster) {
     Proto.constructor = Type;
     // renew config
     old = caster.config;
+    Proto.$name = name;
+    Proto.$basedOn = caster.constructor;
     Proto.config = config = {};
     for (key in old) {
         if (old.hasOwnProperty(key)) {
             config[key] = old[key];
         }
     }
+    
     if (caster.$clone) {
         caster.$clone(Proto);
     }
