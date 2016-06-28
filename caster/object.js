@@ -132,22 +132,21 @@ function schema(manifest) {
         O = Object.prototype,
         hasOwn = O.hasOwnProperty,
         caster = me.$type,
-        old = me.config.schema;
+        config = me.config,
+        old = config.schema;
     
-    var names, nl, list, name, type, types;
+    var names, nl, list, name, type;
     
     if (O.toString.call(manifest) === '[object Object]') {
         list = {};
        
         if (old) {
-            types = old.types;
-            for (name in types) {
-                if (hasOwn.call(types, name)) {
-                    list[name] = types[name];
+            for (name in old) {
+                if (hasOwn.call(old, name)) {
+                    list[name] = old[name];
                 }
             }
-            
-            names = old.names.slice(0);
+            names = config.$schemaNames.slice(0);
             nl = names.length;
         }
         else {
@@ -173,7 +172,7 @@ function schema(manifest) {
         }
         
         me.$$newItemTypes = true;
-        me.config.$schemaNames = names;
+        config.$schemaNames = names;
         return list;
     }
     
@@ -228,6 +227,7 @@ function clone(target, superClone) {
             targetItem[name] = item[name];
         }
     }
+
     targetConfig.$schemaNames = config.$schemaNames.slice(0);
     item = config.$$newItemTypes;
     if (item) {

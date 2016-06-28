@@ -22,6 +22,8 @@ console.log(
         ])
 );
 
+
+
 type.define('buang', recordType);
 
 console.log(

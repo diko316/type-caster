@@ -6,82 +6,34 @@ var CASTER = {},
 
 
 function define(name, caster) {
-    var list = CASTER,
-        F = Function,
-        toString = Object.prototype.toString,
-        manager = EXPORT;
-    var o, key, value, properties, validator, names, nl, configure, clone;
+    var manager = EXPORT;
+    var Type;
     
     if (name && typeof name === 'string') {
         
         // redefine
         if (manager.is(caster)) {
-            defineFrom(name, caster);
-            return manager;
+            Type = extend(caster, {});
+        }
+        // raw define
+        else {
+            Type = extend(new BaseType(), caster);
         }
         
-        o = null;
-        switch (toString.call(caster)) {
-        case '[object Function]':
-            caster.cast = caster;
-        /* falls through */
-        case '[object Object]':
-            o = caster;
-            caster = validator = configure = clone = null;
-            names = [];
-            nl = 0;
-            properties = {};
-            for (key in o) {
-                if (o.hasOwnProperty(key)) {
-                    value = o[key];
-                    switch (key) {
-                    case 'cast':
-                        if (value instanceof F) {
-                            caster = value;
-                        }
-                        break;
-                    case 'validate':
-                        if (value instanceof F) {
-                            validator = value;
-                        }
-                        break;
-                    case '@config':
-                        if (toString.call(value) === '[object Object]') {
-                            configure = value;
-                        }
-                        break;
-                    case '@clone':
-                        if (value instanceof F) {
-                            clone = value;
-                        }
-                        break;
-                    default:
-                        if (value instanceof F) {
-                            names[nl++] = key;
-                            properties[key] = value;
-                        }
-                    }
-                }
-            }
-            
-            if (caster) {
-                list[name] = createTypeCaster(
-                                name,
-                                configure,
-                                caster,
-                                validator,
-                                clone,
-                                names,
-                                properties);
-                LIST_CACHE = null;
-            }
+        // register
+        if (Type) {
+            CASTER[name] = Type;
+            Type.prototype.$name = name;
+            LIST_CACHE = null;
         }
+        
     }
     
     return manager;
 }
 
-function defineFrom(name, caster) {
+
+function extend(caster, properties) {
     var E = empty,
         BaseType = caster.constructor;
     var Proto, config, key, old;
@@ -91,9 +43,8 @@ function defineFrom(name, caster) {
     
     E.prototype = caster;
     Type.prototype = Proto = new E();
-    
+
     Proto.constructor = Type;
-    Proto.$name = name;
     
     // renew config
     old = caster.config;
@@ -104,13 +55,8 @@ function defineFrom(name, caster) {
             config[key] = old[key];
         }
     }
-    
     caster.$clone(Proto);
-    
-    LIST_CACHE = null;
-    CASTER[name] = Type;
-    
-    return EXPORT;
+    return createTypeProperties(BaseType, Type, properties);
 }
 
 function instantiate(name) {
@@ -148,91 +94,124 @@ function list() {
 }
 
 
-
-function createTypeCaster(castName, defaults,
-                          cast, validate, clone, names, configurators) {
-    var E = empty,
-        hasOwn = Object.prototype.hasOwnProperty;
-    var name, c, l, properties, config;
-    
-    function Type() {
-        /*jshint validthis:true */
-        BaseType.apply(this, arguments);
+function createTypeProperties(SuperClass, TypeClass, properties) {
+    var O = Object.prototype,
+        hasOwn = O.hasOwnProperty,
+        toString = O.toString,
+        F = Function,
+        o = TypeClass.prototype,
+        caster = null,
+        validator = caster,
+        configure = caster,
+        clone = caster,
+        config = o.config;
+        
+    var key, value;
+        
+    for (key in properties) {
+        if (hasOwn.call(properties, key)) {
+            value = properties[key];
+            switch (key) {
+            case 'cast':
+                if (value instanceof F) {
+                    caster = value;
+                }
+                break;
+            case 'validate':
+                if (value instanceof F) {
+                    validator = value;
+                }
+                break;
+            case '@config':
+                if (toString.call(value) === '[object Object]') {
+                    configure = value;
+                }
+                break;
+            case '@clone':
+                if (value instanceof F) {
+                    clone = value;
+                }
+                break;
+            default:
+                if (value instanceof F) {
+                    o[key] = wrapConfigurator(key, value);
+                }
+            }
+        }
     }
     
-    E.prototype = BaseType.prototype;
-    properties = new E();
-    properties.constructor = Type;
-    properties.$name = castName;
+    // create caster
+    if (caster) {
+        o.cast = function () {
+            var me = this,
+                defaultValue = me.config.defaultValue;
+            try {
+                return arguments.length ?
+                        caster.apply(me, arguments) : defaultValue;
+            }
+            catch (e) {
+                console.warn(
+                    'type cast ' +
+                    (this.$name || '[unknown]') +
+                    ' error ');
+                console.warn(e);
+            }
+            return defaultValue;
+        };
+    }
     
+    // create validator
+    if (validator) {
+        o.validate = function () {
+            var castName = this.$name || '[unknown]',
+                state = {
+                    error: {
+                        validate: 'is not a valid ' + castName
+                    },
+                    blame: []
+                },
+                
+                args = [state];
+            args.push.apply(args, arguments);
+            try {
+                validator.apply(this, args);
+            }
+            catch (e) {
+                state.error = { 'validate': 'validator has Internal Errors' };
+                console.warn('validate type ' + castName + ' error ');
+                console.warn(e);
+            }
+            return state;
+        };
+    
+    }
+    
+    // create configs
+    if (configure) {
+        for (key in configure) {
+            if (hasOwn.call(configure, key)) {
+                config[key] = configure[key];
+            }
+        }
+    }
+    
+    // clone
     if (clone) {
+        if (!SuperClass) {
+            SuperClass = BaseType;
+        }
         properties.$clone = function (target) {
             var me = this;
             clone.call(me,
                         target,
                         function () {
-                            BaseType.prototype.$clone.call(me, target);
+                            SuperClass.prototype.$clone.call(me, target);
                         });
         };
     }
-    Type.prototype = properties;
     
-    // create wrapped fns
-    for (c = -1, l = names.length; l--;) {
-        name = names[++c];
-        properties[name] = wrapConfigurator(name, configurators[name]);
-    }
+    return TypeClass;
     
-    // create validator
-    if (!validate) {
-        validate = defaultValidator;
-    }
-    
-    properties.validate = function () {
-        var state = {
-                error: {
-                    validate: 'is not a valid ' + castName
-                },
-                blame: []
-            },
-            args = [state];
-        args.push.apply(args, arguments);
-        try {
-            validate.apply(this, args);
-        }
-        catch (e) {
-            state.error = { 'validate': 'validator has Internal Errors' };
-            console.warn('validate type ' + castName + ' error ');
-            console.warn(e);
-        }
-        return state;
-    };
-    
-    // create caster
-    properties.cast = function () {
-        var me = this,
-            defaultValue = me.config.defaultValue;
-        try {
-            return arguments.length ?
-                    cast.apply(me, arguments) : defaultValue;
-        }
-        catch (e) {
-            console.warn('type cast ' + castName + ' error ');
-            console.warn(e);
-        }
-        return defaultValue;
-    };
-    if (defaults) {
-        config = {};
-        for (name in defaults) {
-            if (hasOwn.call(defaults, name)) {
-                config[name] = defaults[name];
-            }
-        }
-        properties.config = config;
-    }
-    
-    return Type;
 }
 
 function wrapConfigurator(name, Configurator) {
@@ -249,9 +228,6 @@ function wrapConfigurator(name, Configurator) {
     };
 }
 
-function defaultValidator(state) {
-    state.error = false;
-}
 
 function empty() {
 }
@@ -278,7 +254,6 @@ BaseType.prototype = {
     config: {
         defaultValue: void(0),
         required: false
-        //optional: true
     },
     
     constructor: BaseType,
@@ -292,18 +267,28 @@ BaseType.prototype = {
                     return !arguments.length || value !== false;
                 }),
     
-    //optional: wrapConfigurator('optional', function (value) {
-    //                return !arguments.length || value !== false;
-    //            }),
+    validate: function () {
+        return {
+                error: false,
+                blame: []
+            };
+    },
     
-    $clone: function(target) {
+    cast: function (data) {
+        return data;
+    },
+    
+    $clone: function (target) {
         var config = this.config,
             targetConfig = target.config;
             
         targetConfig.defaultValue = config.defaultValue;
         targetConfig.required = config.required;
-        //targetConfig.optional = config.optional;
         
+    },
+    
+    extend: function (properties) {
+        return new (extend(this, properties))();
     }
     
 };
