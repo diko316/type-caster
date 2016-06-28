@@ -35,7 +35,8 @@ function define(name, caster) {
 
 function extend(caster, properties) {
     var E = empty,
-        BaseType = caster.constructor;
+        BaseType = caster.constructor,
+        hasOwn = Object.prototype.hasOwnProperty;
     var Proto, config, key, old;
     function Type() {
         BaseType.apply(this, arguments);
@@ -51,7 +52,7 @@ function extend(caster, properties) {
     
     Proto.config = config = {};
     for (key in old) {
-        if (old.hasOwnProperty(key)) {
+        if (hasOwn.call(old, key)) {
             config[key] = old[key];
         }
     }
