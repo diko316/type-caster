@@ -6,9 +6,6 @@ describe('TYPE.list() test',
         
         var TYPE = use('index.js');
         
-        console.log(TYPE.list());
-        
-        
         it('should return Array list of defined type string',
             function () {
                 should(TYPE.list() instanceof Array,

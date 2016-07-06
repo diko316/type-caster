@@ -13,6 +13,9 @@ function convert(value) {
         if (isFinite(value)) {
             value = value.toString(10);
         }
+        else {
+            value = '';
+        }
         break;
     case '[object Array]':
         strs = value.slice(0);
@@ -27,7 +30,7 @@ function convert(value) {
                     strs[l] = str.toString(10);
                 }
                 else {
-                    strs.splice(l, 1);
+                    strs[l] = '';
                 }
             /* falls through */
             case 'string':

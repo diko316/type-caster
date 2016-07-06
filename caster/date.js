@@ -10,7 +10,7 @@ function convert(value) {
     var min, max;
     value = toMoment(value);
     
-    if (value && value.isValid()) {
+    if (value) {
         min = config.min;
         max = config.max;
         
@@ -34,7 +34,7 @@ function validate(state, value) {
     var min, max;
     value = toMoment(value);
     
-    if (value && value.isValid()) {
+    if (value) {
         min = config.min;
         max = config.max;
         
@@ -78,7 +78,7 @@ function toMoment(value) {
     case '[object Date]':
         value = m(value);
     }
-    return value instanceof m ? value : false;
+    return value instanceof m && value.isValid() ? value : false;
 }
 
 function clone(target, superClone) {

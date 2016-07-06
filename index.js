@@ -217,15 +217,24 @@ function createTypeProperties(SuperClass, TypeClass, properties) {
 
 function wrapConfigurator(name, Configurator) {
     return function () {
-        var value = void(0);
+        var value = void(0),
+            current = this;
+        var instance = null;
+        
         try {
-            value = Configurator.apply(this, arguments);
+            value = Configurator.apply(current, arguments);
+            instance = new (extend(current, {}))();
         }
         catch (e) {
             console.warn(e);
         }
-        this.config[name] = value;
-        return this;
+        
+        if (instance) {
+            instance.config[name] = value;
+            return instance;
+        }
+        
+        return current;
     };
 }
 

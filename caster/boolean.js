@@ -4,6 +4,12 @@ function convert(value) {
     if (typeof value === 'number') {
         return isFinite(value) && value !== 0;
     }
+    else if (value === 'false' || value === '0') {
+        return false;
+    }
+    else if (value instanceof Array) {
+        return value.length > 0;
+    }
     return !!value;
 }
 

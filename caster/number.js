@@ -1,18 +1,39 @@
 'use strict';
 
+var NUMERIC_RE = /^[\+\-]?[1-9]+[0-9]*(\.[0-9]+)?$/;
 
 function convert(value) {
+    var config = this.config,
+        min = config.min,
+        max = config.max;
+        
     switch (Object.prototype.toString.call(value)) {
-    case '[object Boolean]': return value ? 1 : 0;
+    case '[object Boolean]':
+        value = value ? 1 : 0;
+        break;
     case '[object String]':
-        value = parseFloat(value);
-    /* falls through */
-    case '[object Number]':
-        if (isFinite(value)) {
-            return value;
+        if (!NUMERIC_RE.test(value)) {
+            return void(0);
         }
+        value = parseFloat(value);
+        break;
+    
+    case '[object Number]':
+        value = isFinite(value) ? value : 0;
+        break;
+    
+    default: return void(0);
     }
-    return void(0);
+    
+    if (min !== false) {
+        value = Math.max(min, value);
+    }
+    
+    if (max !== false) {
+        value = Math.min(max, value);
+    }
+    
+    return value;
 }
 
 function validate(state, value) {
