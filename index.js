@@ -87,7 +87,7 @@ function list() {
     LIST_CACHE = cache = [];
     l = 0;
     for (name in casters) {
-        if (casters.hasownProperty(name)) {
+        if (casters.hasOwnProperty(name)) {
             cache[l++] = name;
         }
     }
