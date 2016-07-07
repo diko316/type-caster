@@ -3,7 +3,10 @@
 function convert(value) {
     /*jshint validthis:true */
     var me = this,
-        types = me.config.itemTypes,
+        config = me.config,
+        types = config.itemTypes,
+        min = config.min,
+        max = config.max,
         isCopy = false;
     var l, c, item, tl, tc, ttl, type;
     
@@ -23,11 +26,29 @@ function convert(value) {
             if (me.$$newItemTypes) {
                 resolveTypes(me);
             }
-            next: for (c = -1, l = value.length; l--;) {
+            
+            // undefined fill
+            l = value.length;
+            if (min && l < min) {
+                l = min - l;
+                c = l - 1;
+                for (; l--;) {
+                    value[c++] = void(0);
+                }
+            }
+            
+            l = value.length;
+            next: for (c = -1; l--;) {
                 item = value[++c];
+                tc = c + 1;
+                if (max && tc > max) {
+                    value.length = max;
+                    break;
+                }
+               
                 for (tc = -1, ttl = tl; ttl--;) {
                     type = types[++tc];
-                    if (type.validate(item)) {
+                    if (!type.validate(item).error) {
                         value[c] = type.cast(item);
                         continue next;
                     }
@@ -35,9 +56,7 @@ function convert(value) {
                 value[c] = void(0);
             }
         }
-        if (!me.validate(value).error) {
-            return value;
-        }
+        return value;
     }
     return void(0);
 }
@@ -47,7 +66,8 @@ function validate(state, value) {
     var me = this,
         config = me.config,
         error = state.error,
-        blame = state.blame;
+        blame = state.blame,
+        pick = pickProperty;
     var min, max, len, types, type, tl, total, l, item,
         bl, typeErrors, itemError;
     
@@ -80,14 +100,15 @@ function validate(state, value) {
                 item = value[l];
                 tl = total;
                 for (; tl--;) {
+                    // validate type
                     type = types[tl];
-                    itemError = types[tl].validate(item).error;
-                    if (!itemError) {
+                    itemError = type.validate(item).error;
+                    if (!type.validate(item).error) {
                         continue next;
                     }
                 }
                 // has invalid item
-                typeErrors[bl] = itemError.validate;
+                typeErrors[bl] = itemError[pick(itemError)];
                 blame[bl++] = l;
             }
             if (bl) {
@@ -106,7 +127,7 @@ function itemTypes(types) {
     var l, type, casters;
     
     if (typeof types === 'string' || caster.is(types)) {
-        types = [types];
+        types = Array.prototype.slice.call(arguments, 0);
     }
     
     if (types instanceof Array) {
@@ -174,7 +195,18 @@ function resolveTypes(typeInstance) {
     return true;
 }
 
-
+function pickProperty(obj) {
+    var O = Object.prototype;
+    var name;
+    if (O.toString.call(obj) === '[object Object]') {
+        for (name in obj) {
+            if (O.hasOwnProperty.call(obj, name)) {
+                return name;
+            }
+        }
+    }
+    return void(0);
+}
 
 module.exports = {
     '@config': {
