@@ -3,14 +3,18 @@
 var NUMERIC_RE = /^[\+\-]?[1-9]+[0-9]*(\.[0-9]+)?$/;
 
 function convert(value) {
+    /*jshint validthis:true */
     var config = this.config,
         min = config.min,
-        max = config.max;
+        max = config.max,
+        interval = config.autoIncrement,
+        lastIncrement = config.incrementStart;
         
     switch (Object.prototype.toString.call(value)) {
     case '[object Boolean]':
         value = value ? 1 : 0;
         break;
+    
     case '[object String]':
         if (!NUMERIC_RE.test(value)) {
             return void(0);
@@ -33,7 +37,27 @@ function convert(value) {
         value = Math.min(max, value);
     }
     
+    if (value > lastIncrement) {
+        config.incrementStart = interval ? value + interval : value;
+    }
+    
     return value;
+}
+
+function castDefault() {
+    /*jshint validthis:true */
+    var config = this.config,
+        interval = config.autoIncrement;
+    var last;
+    
+    if (interval) {
+        last = config.incrementStart;
+        config.incrementStart += interval;
+        return last;
+    }
+    
+    return config.defaultValue;
+    
 }
 
 function validate(state, value) {
@@ -73,6 +97,34 @@ function max(value) {
     return this.config.max;
 }
 
+function autoIncrement(value) {
+    if (typeof value === 'number' && isFinite(value)) {
+        return Math.max(0, value);
+    }
+    /*jshint validthis:true */
+    return 1;
+}
+
+function incrementStart(value) {
+    if (typeof value === 'number' && isFinite(value)) {
+        return value;
+    }
+    /*jshint validthis:true */
+    return this.config.incrementStart;
+}
+
+function defaultValue(value) {
+    /*jshint validthis:true */
+    var config;
+    if (typeof value === 'number' && isFinite(value)) {
+        config = this.config;
+        config.incrementStart = Math.max(value, config.incrementStart);
+        return value;
+    }
+    
+    return this.config.defaultValue;
+}
+
 function clone(target, superClone) {
     /*jshint validthis:true */
     var config = this.config,
@@ -82,16 +134,24 @@ function clone(target, superClone) {
     
     targetConfig.min = config.min;
     targetConfig.max = config.max;
+    targetConfig.autoIncrement = config.autoIncrement;
+    targetConfig.incrementStart = config.incrementStart;
 }
 
 module.exports = {
     '@config': {
+        autoIncrement: 0,
+        incrementStart: 1,
         min: false,
         max: false
     },
     '@clone': clone,
-    'cast': convert,
+    '@defaultValue': castDefault,
+    cast: convert,
     validate: validate,
+    defaultValue: defaultValue,
     min: min,
-    max: max
+    max: max,
+    autoIncrement: autoIncrement,
+    incrementStart: incrementStart
 };

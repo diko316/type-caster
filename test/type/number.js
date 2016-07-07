@@ -6,7 +6,9 @@ describe('"number" TYPE test',
         var TYPE = use('index.js'),
             NUMBER = TYPE('number'),
             NUMBER100 = NUMBER.min(100),
-            NUMBER100TO350 = NUMBER.max(350);
+            NUMBER100TO350 = NUMBER.max(350),
+            NUMBER_AUTOINCREMENT = NUMBER.autoIncrement(),
+            NUMBER_AUTOINCREMENT100 = NUMBER_AUTOINCREMENT.incrementStart(100);
             
         // cast()
         describe('cast(data) method',
@@ -37,6 +39,7 @@ describe('"number" TYPE test',
                         assert(NUMBER.cast(101.12) === 101.12,
                             'should convert float number [101.12] to number 101.12');
                     });
+                
             });
         
         // validate
@@ -137,6 +140,31 @@ describe('"number" TYPE test',
                         
                         assert(valid.error !== false,
                             'should not be a valid [data:number] when more than 350');
+                    });
+            });
+        
+        // autoincrement()
+        describe('autoIncrement() method',
+            function () {
+                it('should cast([data:number]) auto incremented value if set',
+                    function () {
+                        assert(NUMBER_AUTOINCREMENT.cast() === 1,
+                            'should auto increment to 1');
+                        assert(NUMBER_AUTOINCREMENT.cast() === 2,
+                            'should auto increment to 2');
+                    });
+            });
+        
+         
+        // autoincrement()
+        describe('incrementStart() method',
+            function () {
+                it('should cast([data:number]) auto incremented value starting from incrementStart settings if set',
+                    function () {
+                        assert(NUMBER_AUTOINCREMENT100.cast() === 100,
+                            'should auto increment to 100');
+                        assert(NUMBER_AUTOINCREMENT100.cast() === 101,
+                            'should auto increment to 101');
                     });
             });
     });

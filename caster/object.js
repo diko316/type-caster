@@ -5,8 +5,7 @@ function convert(value) {
     /*jshint validthis:true */
     var me = this,
         O = Object.prototype,
-        config = me.config,
-        undef = void(0);
+        config = me.config;
     var created, types, names, name,
         c, l, item, itemType, hasOwn;
     
@@ -38,7 +37,7 @@ function convert(value) {
                 
                 // fail if default value is not valid
                 if (itemType.validate(item).error) {
-                    return undef;
+                    return null;
                 }
                 
             }
@@ -61,7 +60,7 @@ function convert(value) {
         return created;
         
     }
-    return undef;
+    return null;
 }
 
 function validate(state, value) {
@@ -180,7 +179,7 @@ function schema(manifest) {
 }
 
 function strict(value) {
-    return !arguments.length || value !== false;
+    return value !== false;
 }
 
 function resolveTypes(typeInstance) {

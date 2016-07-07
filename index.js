@@ -102,6 +102,7 @@ function createTypeProperties(SuperClass, TypeClass, properties) {
         F = Function,
         o = TypeClass.prototype,
         caster = null,
+        defaultValueCaster = null,
         validator = caster,
         configure = caster,
         clone = caster,
@@ -121,6 +122,11 @@ function createTypeProperties(SuperClass, TypeClass, properties) {
             case 'validate':
                 if (value instanceof F) {
                     validator = value;
+                }
+                break;
+            case '@defaultValue':
+                if (value instanceof F) {
+                    defaultValueCaster = value;
                 }
                 break;
             case '@config':
@@ -144,21 +150,27 @@ function createTypeProperties(SuperClass, TypeClass, properties) {
     // create caster
     if (caster) {
         o.cast = function () {
-            var me = this,
-                defaultValue = me.config.defaultValue;
+            var me = this;
             try {
                 return arguments.length ?
-                        caster.apply(me, arguments) : defaultValue;
+                        caster.apply(me, arguments) :
+                        me.castDefault.apply(me, arguments);
             }
             catch (e) {
                 console.warn(
                     'type cast ' +
-                    (this.$name || '[unknown]') +
+                    (me.$name || '[unknown]') +
                     ' error ');
                 console.warn(e);
             }
-            return defaultValue;
+            // nothing :-(
+            return void(0);
         };
+    }
+    
+    // create defaultValue caster
+    if (defaultValueCaster) {
+        o.castDefault = defaultValueCaster;
     }
     
     // create validator
@@ -268,13 +280,17 @@ BaseType.prototype = {
     
     constructor: BaseType,
     
+    castDefault: function () {
+        return this.config.defaultValue;
+    },
+    
     defaultValue: wrapConfigurator('defaultValue', function (value) {
                     return arguments.length ?
                             value : this.config.defaultValue;
                 }),
     
     required: wrapConfigurator('required', function (value) {
-                    return !arguments.length || value !== false;
+                    return value !== false;
                 }),
     
     validate: function () {
