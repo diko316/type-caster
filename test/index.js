@@ -29,4 +29,5 @@ describe('Test default types',
         require('./type/boolean.js');
         require('./type/date.js');
         require('./type/array.js');
+        require('./type/object.js');
     });
