@@ -1,6 +1,7 @@
 'use strict';
 
 var CASTER = {},
+    INSTANCES = {},
     EXPORT = instantiate,
     LIST_CACHE = null;   
 
@@ -61,9 +62,13 @@ function extend(caster, properties) {
 }
 
 function instantiate(name) {
-    var list = CASTER;
+    var list = CASTER,
+        instances = INSTANCES;
     if (list.hasOwnProperty(name)) {
-        return new (list[name])();
+        if (instances.hasOwnProperty(name)) {
+            return instances[name];
+        }
+        return instances[name] = new (list[name])();
     }
     return void(0);
 }
