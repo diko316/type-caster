@@ -280,6 +280,8 @@ BaseType.prototype = {
     
     config: {
         defaultValue: void(0),
+        unique: false,
+        primary: false,
         required: false
     },
     
@@ -292,6 +294,15 @@ BaseType.prototype = {
     defaultValue: wrapConfigurator('defaultValue', function (value) {
                     return arguments.length ?
                             value : this.config.defaultValue;
+                }),
+    
+    primary: wrapConfigurator('primary', function (value) {
+                    return value instanceof Function ?
+                                value : value !== false;
+                }),
+    
+    unique: wrapConfigurator('unique', function (value) {
+                    return value !== false;
                 }),
     
     required: wrapConfigurator('required', function (value) {
@@ -315,7 +326,8 @@ BaseType.prototype = {
             
         targetConfig.defaultValue = config.defaultValue;
         targetConfig.required = config.required;
-        
+        targetConfig.primary = config.primary;
+        targetConfig.unique = config.unique;
     },
     
     extend: function (properties) {
