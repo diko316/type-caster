@@ -187,9 +187,14 @@ function resolveTypes(typeInstance) {
     var caster = typeInstance.$type,
         config = typeInstance.config,
         types = config.schema,
-        names = config.$schemaNames;
+        names = config.$schemaNames,
+        unique = config.uniqueKeys,
+        primary = null;
         
-    var name, type, c, l;
+    var name, type, c, l, typeConfig, ul;
+    
+    unique.splice(0, unique.length);
+    ul = 0;
 
     for (c = -1, l = names.length; l--;) {
         name = names[++c];
@@ -199,8 +204,23 @@ function resolveTypes(typeInstance) {
                 throw new Error(type + ' type in [' +
                                 name + '] schema do not exist');
             }
-            types[name] = caster(type);
+            types[name] = type = caster(type);
         }
+        if (type) {
+            typeConfig = type.config;
+            if (typeConfig.primary) {
+                if (!primary) {
+                    config.primaryKey = primary = name;
+                }
+                else {
+                    unique[ul++] = name;
+                }
+            }
+            else if (typeConfig.unique) {
+                unique[ul++] = name;
+            }
+        }
+        
     }
     delete typeInstance.$$newItemTypes;
 }
@@ -226,18 +246,25 @@ function clone(target, superClone) {
             targetItem[name] = item[name];
         }
     }
+    
+    targetConfig.primaryKey = config.primaryKey;
+    targetConfig.uniqueKeys = config.uniqueKeys.slice(0);
 
     targetConfig.$schemaNames = config.$schemaNames.slice(0);
     item = config.$$newItemTypes;
     if (item) {
         targetConfig.$$newItemTypes = item;
     }
+    
+    
 
 }
 
 module.exports = {
     '@config': {
         strict: false,
+        primaryKey: false,
+        uniqueKeys: [],
         $schemaNames: [],
         schema: false
     },
